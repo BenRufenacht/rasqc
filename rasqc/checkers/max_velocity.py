@@ -1,29 +1,30 @@
-"""Module for simulation volume accounting checks."""
+"""Module for simulation max velocity check."""
 
+from sys import flags
 from rasqc.base_checker import RasqcChecker
 from rasqc.registry import register_check
 from rasqc.rasmodel import RasModel
 from rasqc.result import RasqcResult, ResultStatus
+from rasqc import utils as util
 
-from rashdf import RasPlanHdf
+from rashdf import RasPlanHdf, utils
 
 from pathlib import Path
 from typing import List
 
-VOLUME_ERROR_PERCENT_TOLERANCE = 2
-
+MAX_VEL_FLAG = 15
 
 @register_check(["ble", "stability"], dependencies=["PlanHdfExists"])
-class VolumeError(RasqcChecker):
-    """Checker for volume accounting errors.
+class MaxVelocity(RasqcChecker):
+    """Checker for high maximum velocity in mesh faces.
 
-    Checks if the volume accounting error is less than 2% of the total volume.
+    Checks if the maximum velocity exceeds the defined threshold.
     """
 
-    name = "Volume Accounting Error"
+    name = "Maximum Velocity"
 
     def _check(self, plan_hdf: RasPlanHdf, plan_hdf_filename: str) -> RasqcResult:
-        """Check the volume accounting error for a RAS plan HDF file.
+        """Check the maximum velocity in mesh faces for a RAS plan HDF file.
 
         Parameters
         ----------
@@ -42,23 +43,37 @@ class VolumeError(RasqcChecker):
                 result=ResultStatus.WARNING,
                 message="Plan HDF file not found.",
             )
-        vol_err = plan_hdf.get_results_volume_accounting_attrs()["Error Percent"]
-        if vol_err > VOLUME_ERROR_PERCENT_TOLERANCE:
+        mesh_faces = plan_hdf.mesh_cell_faces()
+
+        if util.get_units_system(plan_hdf) == "SI Units":
+                max_vel_threshold = round(MAX_VEL_FLAG * 0.3048, 1)  # Convert feet/s to m/s
+                units = "m/s"
+        else:
+                max_vel_threshold = MAX_VEL_FLAG
+                units = "ft/s"
+        vel_flags = mesh_faces.loc[
+                    mesh_faces["max_v"] >= max_vel_threshold
+                    ].copy()
+
+        flags_st = utils.df_datetimes_to_str(vel_flags)
+
+        if not vel_flags.empty:
             return RasqcResult(
                 name=self.name,
                 filename=plan_hdf_filename,
                 result=ResultStatus.ERROR,
-                message=(
-                    f"Volume accounting error percent of '{vol_err}' is greater than"
-                    f" the acceptable tolerance of {VOLUME_ERROR_PERCENT_TOLERANCE}."
-                ),
+                message=f"{vel_flags.shape[0]} faces have maximum velocity greater than or equal to {max_vel_threshold} {units}.",
+                gdf=flags_st,
             )
         return RasqcResult(
-            name=self.name, result=ResultStatus.OK, filename=plan_hdf_filename
+            name=self.name, 
+            result=ResultStatus.OK, 
+            filename=plan_hdf_filename,
+            message=f"All faces have maximum velocity less than {max_vel_threshold} {units}."
         )
 
     def run(self, ras_model: RasModel) -> List[RasqcResult]:
-        """Check the volume accounting error for all RAS plan HDF files in a model.
+        """Check the maximum face velocity for all RAS plan HDF files in a model.
 
         Parameters
         ----------

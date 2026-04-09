@@ -1,4 +1,4 @@
-"""Checks related to breaklines within a HEC-RAS model."""
+"""Checks related to structure lines within a HEC-RAS model."""
 
 from rasqc.base_checker import RasqcChecker
 from rasqc.registry import register_check
@@ -9,26 +9,25 @@ from rashdf import RasGeomHdf
 from pathlib import Path
 
 ENFORCEMENT_TOLERANCE_FEET = 5
-MIN_FLAG_LENGTH_FEET = 10
-
+MIN_FLAG_LENGTH_FEET = 1
 
 @register_check(["ble", "mesh"], dependencies=["GeomHdfExists"])
-class BreaklineEnforcement(RasqcChecker):
-    """Checker for breakline enforcement.
+class StructureLineEnforcement(RasqcChecker):
+    """Checker for structure line enforcement.
 
-    Checks the breakline enforcement within the current geometry
-    and returns a `GeoDataFrame` of delinquent breaklines. The
-    general process is to buffer the mesh cell faces by the
+    Checks the structure line enforcement within the current geometry
+    and returns a `GeoDataFrame` of delinquent mesh faces along the structure 
+    lines. The general process is to buffer the mesh cell faces by the
     `ENFORCEMENT_TOLERANCE_FEET`, then get the overlayed difference
-    relative to the breakline features and return any remaining
-    polyline features with a lenth >= `MIN_FLAG_LENGTH_FEET` as
+    relative to the structure line features and return any remaining
+    polyline features with a length >= `MIN_FLAG_LENGTH_FEET` as
     a `GeoDataFrame` within the `RasqcResult` object.
     """
 
-    name = "Breakline Enforcement"
+    name = "Structure Line Enforcement"
 
     def _check(self, geom_hdf: RasGeomHdf, geom_hdf_filename: str) -> RasqcResult:
-        """Execute breakline enforcement check for a RAS geometry HDF file.
+        """Execute structure line enforcement check for a RAS geometry HDF file.
 
         Parameters
         ----------
@@ -48,15 +47,15 @@ class BreaklineEnforcement(RasqcChecker):
                 message="Geometry HDF file not found.",
             )
         mesh_faces = geom_hdf.mesh_cell_faces()
-        bls = geom_hdf.breaklines()
-        if bls.empty:
+        structures = geom_hdf.structures()
+        if structures.empty:
             return RasqcResult(
                 name=self.name,
                 filename=geom_hdf_filename,
                 result=ResultStatus.WARNING,
-                message="no breaklines found within the model geometry",
+                message="no structures found within the model geometry",
             )
-        flags_all = bls.overlay(
+        flags_all = structures.overlay(
             mesh_faces.buffer(ENFORCEMENT_TOLERANCE_FEET).to_frame(),
             how="difference",
             keep_geom_type=True,
@@ -69,18 +68,18 @@ class BreaklineEnforcement(RasqcChecker):
                 name=self.name,
                 filename=geom_hdf_filename,
                 result=ResultStatus.OK,
-                message="no breakline enforcement flags found",
+                message="no structure line enforcement flags found",
             )
         return RasqcResult(
             name=self.name,
             filename=geom_hdf_filename,
             result=ResultStatus.ERROR,
-            message=f"{flags_filtered.shape[0]} breakline enforcement flags found",
+            message=f"{flags_filtered.shape[0]} structure line enforcement flags found",
             gdf=flags_filtered,
         )
 
     def run(self, ras_model: RasModel) -> RasqcResult:
-        """Execute breakline enforcement check for a HEC-RAS model.
+        """Execute structure line enforcement check for a HEC-RAS model.
 
         Parameters
         ----------

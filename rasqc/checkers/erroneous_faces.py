@@ -1,31 +1,28 @@
-"""Checks related to 2D mesh cell face length."""
+"""Checks related to erroneous 2D mesh cells within a HEC-RAS model."""
 
 from rasqc.base_checker import RasqcChecker
 from rasqc.registry import register_check
 from rasqc.rasmodel import RasModel
 from rasqc.result import RasqcResult, ResultStatus
+from rasqc.utils import calculate_min_angle
 
 from rashdf import RasGeomHdf
 from pathlib import Path
 
-MIN_FACE_LENGTH_FEET = 10
-
+MIN_ANGLE = 75
 
 @register_check(["mesh"], dependencies=["GeomHdfExists"])
-class ShortCellFaces(RasqcChecker):
-    """Checker for short 2D mesh cell faces.
+class ErroneousFaces(RasqcChecker):
+    """Checker for erroneous 2D mesh faces.
 
-    Checks the current geometry within a RAS model for short
-    cell faces that can be a source of instabilities.
-    Any polyline features with a lenth < `MIN_FACE_LENGTH_FEET`
-    are returned as a `GeoDataFrame` within the `RasqcResult`
-    object.
+    Checks the current geometry within a RAS model and returns a `GeoDataFrame`
+    of erroneous 2D mesh faces (those with an interior angle of less than 75 degrees).
     """
 
-    name = "Short Cell Faces"
+    name = "Erroneous Faces"
 
     def _check(self, geom_hdf: RasGeomHdf, geom_hdf_filename: str) -> RasqcResult:
-        """Execute short 2D mesh cell faces check for a RAS geometry HDF file.
+        """Execute erroneous face check for a RAS geometry HDF file.
 
         Parameters
         ----------
@@ -45,26 +42,30 @@ class ShortCellFaces(RasqcChecker):
                 message="Geometry HDF file not found.",
             )
         mesh_faces = geom_hdf.mesh_cell_faces()
-        flags = mesh_faces.loc[
-            mesh_faces["geometry"].length < MIN_FACE_LENGTH_FEET
-        ].copy()
-        if flags.empty:
+
+        # Calculate minimum angle for each face
+        mesh_faces['min_angle'] = mesh_faces['geometry'].apply(calculate_min_angle)
+
+        # Filter faces with angle less than MIN_ANGLE
+        face_flags = mesh_faces.loc[mesh_faces['min_angle'] < MIN_ANGLE].copy()
+
+        if face_flags.empty:
             return RasqcResult(
                 name=self.name,
                 filename=geom_hdf_filename,
                 result=ResultStatus.OK,
-                message="no short cell faces found",
+                message="no erroneous faces found",
             )
         return RasqcResult(
             name=self.name,
             filename=geom_hdf_filename,
             result=ResultStatus.ERROR,
-            message=f"{flags.shape[0]} short cell faces found",
-            gdf=flags,
+            message=f"{face_flags.shape[0]} erroneous faces found",
+            gdf=face_flags,
         )
 
     def run(self, ras_model: RasModel) -> RasqcResult:
-        """Execute short 2D mesh cell faces check for a HEC-RAS model.
+        """Execute erroneous face check for a HEC-RAS model.
 
         Parameters
         ----------

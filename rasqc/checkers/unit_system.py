@@ -1,29 +1,24 @@
-"""Module for simulation volume accounting checks."""
+"""Checker for unit system settings."""
 
 from rasqc.base_checker import RasqcChecker
 from rasqc.registry import register_check
+from rasqc.result import RasqcResult, ResultStatus, RasqcResultEncoder
 from rasqc.rasmodel import RasModel
-from rasqc.result import RasqcResult, ResultStatus
+from rasqc import utils
 
 from rashdf import RasPlanHdf
 
-from pathlib import Path
 from typing import List
+from pathlib import Path
 
-VOLUME_ERROR_PERCENT_TOLERANCE = 2
+@register_check(["ble"], dependencies=["PlanHdfExists"])
+class NoteUnitSystem(RasqcChecker):
+    """Checker for noting the unit system setting in the model."""
 
-
-@register_check(["ble", "stability"], dependencies=["PlanHdfExists"])
-class VolumeError(RasqcChecker):
-    """Checker for volume accounting errors.
-
-    Checks if the volume accounting error is less than 2% of the total volume.
-    """
-
-    name = "Volume Accounting Error"
+    name = "Unit System"
 
     def _check(self, plan_hdf: RasPlanHdf, plan_hdf_filename: str) -> RasqcResult:
-        """Check the volume accounting error for a RAS plan HDF file.
+        """Check the unit system setting in the model.
 
         Parameters
         ----------
@@ -42,23 +37,26 @@ class VolumeError(RasqcChecker):
                 result=ResultStatus.WARNING,
                 message="Plan HDF file not found.",
             )
-        vol_err = plan_hdf.get_results_volume_accounting_attrs()["Error Percent"]
-        if vol_err > VOLUME_ERROR_PERCENT_TOLERANCE:
+        
+        units = utils.get_units_system(plan_hdf)
+        
+        if not units:
             return RasqcResult(
                 name=self.name,
                 filename=plan_hdf_filename,
-                result=ResultStatus.ERROR,
-                message=(
-                    f"Volume accounting error percent of '{vol_err}' is greater than"
-                    f" the acceptable tolerance of {VOLUME_ERROR_PERCENT_TOLERANCE}."
-                ),
-            )
+                result=ResultStatus.WARNING,
+                message="Unit System not found.",
+            )   
+        
         return RasqcResult(
-            name=self.name, result=ResultStatus.OK, filename=plan_hdf_filename
+            name=self.name,
+                filename=plan_hdf_filename,
+                result=ResultStatus.NOTE,
+                message=units,
         )
-
+    
     def run(self, ras_model: RasModel) -> List[RasqcResult]:
-        """Check the volume accounting error for all RAS plan HDF files in a model.
+        """Check the unit system for all plans in a model.
 
         Parameters
         ----------

@@ -1,29 +1,32 @@
-"""Module for simulation volume accounting checks."""
+"""Module for simulation computational iterations check."""
 
+from sys import flags
 from rasqc.base_checker import RasqcChecker
 from rasqc.registry import register_check
 from rasqc.rasmodel import RasModel
 from rasqc.result import RasqcResult, ResultStatus
 
-from rashdf import RasPlanHdf
+from rashdf import RasPlanHdf, utils
 
 from pathlib import Path
 from typing import List
 
-VOLUME_ERROR_PERCENT_TOLERANCE = 2
-
+ITER_FLAG = 1
+LAST_FLAG = 10
 
 @register_check(["ble", "stability"], dependencies=["PlanHdfExists"])
-class VolumeError(RasqcChecker):
-    """Checker for volume accounting errors.
+class Iterations(RasqcChecker):
+    """Checker for computational iterations.
 
-    Checks if the volume accounting error is less than 2% of the total volume.
+    Checks the number of computational iterations that occur in each mesh cell and flags
+    cells with more iterations than the threshold. Also flags cells that show they are the
+    last cell iterating in a time step to show the cells that are causing long run times.
     """
 
-    name = "Volume Accounting Error"
+    name = "Iterations"
 
     def _check(self, plan_hdf: RasPlanHdf, plan_hdf_filename: str) -> RasqcResult:
-        """Check the volume accounting error for a RAS plan HDF file.
+        """Check the number of computational iterations in mesh cells for a RAS plan HDF file.
 
         Parameters
         ----------
@@ -42,23 +45,31 @@ class VolumeError(RasqcChecker):
                 result=ResultStatus.WARNING,
                 message="Plan HDF file not found.",
             )
-        vol_err = plan_hdf.get_results_volume_accounting_attrs()["Error Percent"]
-        if vol_err > VOLUME_ERROR_PERCENT_TOLERANCE:
+        mesh_cells = plan_hdf.mesh_cell_polygons()
+
+        iter_flags = mesh_cells.loc[
+            (mesh_cells["max_iter"] > ITER_FLAG) | (mesh_cells["last_iter"] > LAST_FLAG)
+            ].copy()
+
+        flags_st = utils.df_datetimes_to_str(iter_flags)
+
+        if not iter_flags.empty:
             return RasqcResult(
                 name=self.name,
                 filename=plan_hdf_filename,
                 result=ResultStatus.ERROR,
-                message=(
-                    f"Volume accounting error percent of '{vol_err}' is greater than"
-                    f" the acceptable tolerance of {VOLUME_ERROR_PERCENT_TOLERANCE}."
-                ),
+                message=f"{iter_flags.shape[0]} cells have iteration counts exceeding limits.",
+                gdf=flags_st,
             )
         return RasqcResult(
-            name=self.name, result=ResultStatus.OK, filename=plan_hdf_filename
+            name=self.name, 
+            result=ResultStatus.OK, 
+            filename=plan_hdf_filename,
+            message=f"All cells have iteration counts within limits."
         )
 
     def run(self, ras_model: RasModel) -> List[RasqcResult]:
-        """Check the volume accounting error for all RAS plan HDF files in a model.
+        """Check the number of computational iterations for all RAS plan HDF files in a model.
 
         Parameters
         ----------
