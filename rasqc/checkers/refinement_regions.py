@@ -50,15 +50,17 @@ class RefRegionEnforcement(RasqcChecker):
             )
         mesh_faces = geom_hdf.mesh_cell_faces()
         rrs = geom_hdf.refinement_regions()
+        boundary = geom_hdf.mesh_areas()
         if rrs.empty:
             return RasqcResult(
                 name=self.name,
                 filename=geom_hdf_filename,
                 result=ResultStatus.WARNING,
-                message="no refinement regions found within the model geometry",
+                message="No refinement regions found within the model geometry",
             )
-        rrs.geometry = rrs.geometry.apply(lambda g: getattr(g, "exterior", None))
-        flags_all = rrs.overlay(
+        rrs_clip = rrs.clip(boundary)
+        rrs_clip.geometry = rrs_clip.geometry.apply(lambda g: getattr(g, "exterior", None))
+        flags_all = rrs_clip.overlay(
             mesh_faces.buffer(ENFORCEMENT_TOLERANCE_FEET).to_frame(),
             how="difference",
             keep_geom_type=True,
