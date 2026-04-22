@@ -40,4 +40,4 @@ convention = "numpy"
 "docs/**" = ["D"]
 
 [tool.setuptools.package-data]
-rasqc = ["data/*.json"]
+rasqc = ["data/*.json", "template.html"]
