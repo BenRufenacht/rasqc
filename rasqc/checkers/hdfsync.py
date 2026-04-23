@@ -187,8 +187,8 @@ class PlanHdfDatetime(RasqcChecker):
         run_time_window = phdf_attrs.get("Run Time Window")
         if run_time_window:
             run_time_start = run_time_window[0]
-            if run_time_start > ghdf_datetime:
-                err_msg = f"'{plan_file.path.name}': {self.criteria} ({run_time_start} > {ghdf_datetime})"
+            if run_time_start < ghdf_datetime:
+                err_msg = f"'{plan_file.path.name}': {self.criteria} ({run_time_start} < {ghdf_datetime})"
                 return RasqcResult(
                     name=self.name,
                     filename=Path(plan_file.hdf_path).name,
