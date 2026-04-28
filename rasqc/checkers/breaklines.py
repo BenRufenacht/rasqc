@@ -57,7 +57,7 @@ class BreaklineEnforcement(RasqcChecker):
                 result=ResultStatus.WARNING,
                 message="No breaklines found within the model geometry",
             )
-        
+
         bls_clip = bls.clip(boundary)
         flags_all = bls_clip.overlay(
             mesh_faces.buffer(ENFORCEMENT_TOLERANCE_FEET).to_frame(),

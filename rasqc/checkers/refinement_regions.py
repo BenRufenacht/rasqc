@@ -59,7 +59,9 @@ class RefRegionEnforcement(RasqcChecker):
                 message="No refinement regions found within the model geometry",
             )
         rrs_clip = rrs.clip(boundary)
-        rrs_clip.geometry = rrs_clip.geometry.apply(lambda g: getattr(g, "exterior", None))
+        rrs_clip.geometry = rrs_clip.geometry.apply(
+            lambda g: getattr(g, "exterior", None)
+        )
         flags_all = rrs_clip.overlay(
             mesh_faces.buffer(ENFORCEMENT_TOLERANCE_FEET).to_frame(),
             how="difference",

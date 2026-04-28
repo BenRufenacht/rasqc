@@ -14,11 +14,14 @@ from typing import List
 
 MAX_VEL_FLAG = 15
 
+
 @register_check(["ble", "stability"], dependencies=["PlanHdfExists"])
 class MaxVelocity(RasqcChecker):
     """Checker for high maximum velocity in mesh faces.
 
-    Checks if the maximum velocity exceeds the defined threshold.
+    Checks if the maximum velocity exceeds the defined threshold of MAX_VEL_FLAG
+    in feet per second. If the unit sistem is SI, the threshold is converted to
+    meters per second.
     """
 
     name = "Maximum Velocity"
@@ -46,14 +49,12 @@ class MaxVelocity(RasqcChecker):
         mesh_faces = plan_hdf.mesh_cell_faces()
 
         if util.get_units_system(plan_hdf) == "SI Units":
-                max_vel_threshold = round(MAX_VEL_FLAG * 0.3048, 1)  # Convert feet/s to m/s
-                units = "m/s"
+            max_vel_threshold = round(MAX_VEL_FLAG * 0.3048, 1)  # Convert feet/s to m/s
+            units = "m/s"
         else:
-                max_vel_threshold = MAX_VEL_FLAG
-                units = "ft/s"
-        vel_flags = mesh_faces.loc[
-                    mesh_faces["max_v"] >= max_vel_threshold
-                    ].copy()
+            max_vel_threshold = MAX_VEL_FLAG
+            units = "ft/s"
+        vel_flags = mesh_faces.loc[mesh_faces["max_v"] >= max_vel_threshold].copy()
 
         flags_st = utils.df_datetimes_to_str(vel_flags)
 
@@ -66,10 +67,10 @@ class MaxVelocity(RasqcChecker):
                 gdf=flags_st,
             )
         return RasqcResult(
-            name=self.name, 
-            result=ResultStatus.OK, 
+            name=self.name,
+            result=ResultStatus.OK,
             filename=plan_hdf_filename,
-            message=f"All faces have maximum velocity less than {max_vel_threshold} {units}."
+            message=f"All faces have maximum velocity less than {max_vel_threshold} {units}.",
         )
 
     def run(self, ras_model: RasModel) -> List[RasqcResult]:

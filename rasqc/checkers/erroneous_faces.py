@@ -11,6 +11,7 @@ from pathlib import Path
 
 MIN_ANGLE = 75
 
+
 @register_check(["mesh"], dependencies=["GeomHdfExists"])
 class ErroneousFaces(RasqcChecker):
     """Checker for erroneous 2D mesh faces.
@@ -44,10 +45,10 @@ class ErroneousFaces(RasqcChecker):
         mesh_faces = geom_hdf.mesh_cell_faces()
 
         # Calculate minimum angle for each face
-        mesh_faces['min_angle'] = mesh_faces['geometry'].apply(calculate_min_angle)
+        mesh_faces["min_angle"] = mesh_faces["geometry"].apply(calculate_min_angle)
 
         # Filter faces with angle less than MIN_ANGLE
-        face_flags = mesh_faces.loc[mesh_faces['min_angle'] < MIN_ANGLE].copy()
+        face_flags = mesh_faces.loc[mesh_faces["min_angle"] < MIN_ANGLE].copy()
 
         if face_flags.empty:
             return RasqcResult(

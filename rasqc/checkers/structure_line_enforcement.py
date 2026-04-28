@@ -11,12 +11,13 @@ from pathlib import Path
 ENFORCEMENT_TOLERANCE_FEET = 5
 MIN_FLAG_LENGTH_FEET = 1
 
+
 @register_check(["ble", "mesh"], dependencies=["GeomHdfExists"])
 class StructureLineEnforcement(RasqcChecker):
     """Checker for structure line enforcement.
 
     Checks the structure line enforcement within the current geometry
-    and returns a `GeoDataFrame` of delinquent mesh faces along the structure 
+    and returns a `GeoDataFrame` of delinquent mesh faces along the structure
     lines. The general process is to buffer the mesh cell faces by the
     `ENFORCEMENT_TOLERANCE_FEET`, then get the overlayed difference
     relative to the structure line features and return any remaining

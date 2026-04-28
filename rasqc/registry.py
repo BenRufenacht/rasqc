@@ -12,7 +12,6 @@ CHECKSUITES: Dict[str, "CheckSuite"] = {
     "ble": CheckSuite(),
     "stability": CheckSuite(),
     "mesh": CheckSuite(),
-    "test": CheckSuite()
 }
 
 

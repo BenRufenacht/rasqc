@@ -14,13 +14,15 @@ from typing import List
 ITER_FLAG = 1
 LAST_FLAG = 10
 
+
 @register_check(["ble", "stability"], dependencies=["PlanHdfExists"])
 class Iterations(RasqcChecker):
     """Checker for computational iterations.
 
     Checks the number of computational iterations that occur in each mesh cell and flags
-    cells with more iterations than the threshold. Also flags cells that show they are the
-    last cell iterating in a time step to show the cells that are causing long run times.
+    cells with more iterations than the threshold set by ITER_FLAG. Also flags cells that
+    show they are the last cell iterating in a time step in more time steps than the LAST_FLAG
+    to show the cells that are causing long run times.
     """
 
     name = "Iterations"
@@ -49,7 +51,7 @@ class Iterations(RasqcChecker):
 
         iter_flags = mesh_cells.loc[
             (mesh_cells["max_iter"] > ITER_FLAG) | (mesh_cells["last_iter"] > LAST_FLAG)
-            ].copy()
+        ].copy()
 
         flags_st = utils.df_datetimes_to_str(iter_flags)
 
@@ -62,10 +64,10 @@ class Iterations(RasqcChecker):
                 gdf=flags_st,
             )
         return RasqcResult(
-            name=self.name, 
-            result=ResultStatus.OK, 
+            name=self.name,
+            result=ResultStatus.OK,
             filename=plan_hdf_filename,
-            message=f"All cells have iteration counts within limits."
+            message=f"All cells have iteration counts within limits.",
         )
 
     def run(self, ras_model: RasModel) -> List[RasqcResult]:

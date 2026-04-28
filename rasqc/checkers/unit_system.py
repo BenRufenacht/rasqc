@@ -11,6 +11,7 @@ from rashdf import RasPlanHdf
 from typing import List
 from pathlib import Path
 
+
 @register_check(["ble"], dependencies=["PlanHdfExists"])
 class NoteUnitSystem(RasqcChecker):
     """Checker for noting the unit system setting in the model."""
@@ -37,24 +38,24 @@ class NoteUnitSystem(RasqcChecker):
                 result=ResultStatus.WARNING,
                 message="Plan HDF file not found.",
             )
-        
+
         units = utils.get_units_system(plan_hdf)
-        
+
         if not units:
             return RasqcResult(
                 name=self.name,
                 filename=plan_hdf_filename,
                 result=ResultStatus.WARNING,
                 message="Unit System not found.",
-            )   
-        
+            )
+
         return RasqcResult(
             name=self.name,
-                filename=plan_hdf_filename,
-                result=ResultStatus.NOTE,
-                message=units,
+            filename=plan_hdf_filename,
+            result=ResultStatus.NOTE,
+            message=units,
         )
-    
+
     def run(self, ras_model: RasModel) -> List[RasqcResult]:
         """Check the unit system for all plans in a model.
 

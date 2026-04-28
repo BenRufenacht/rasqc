@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import List
 
 
-@register_check(["ffrd", "ble", "mesh", "test"])
+@register_check(["ffrd", "ble", "mesh"])
 class GeomHdfExists(RasqcChecker):
     """Check if each Geometry file has a corresponding HDF file."""
 
@@ -102,7 +102,7 @@ class GeomHdfDatetime(RasqcChecker):
         return [self._check(geom_file) for geom_file in ras_model.geometries]
 
 
-@register_check(["ffrd", "ble", "stability", "test"])
+@register_check(["ffrd", "ble", "stability"])
 class PlanHdfExists(RasqcChecker):
     """Check if each Plan file has a corresponding HDF file."""
 

@@ -13,6 +13,7 @@ from typing import List
 
 ERROR_FLAG = 0.01
 
+
 @register_check(["ble", "stability"], dependencies=["PlanHdfExists"])
 class WaterSurfaceError(RasqcChecker):
     """Checker for computational water surface errors.
@@ -44,9 +45,7 @@ class WaterSurfaceError(RasqcChecker):
             )
         mesh_cells = plan_hdf.mesh_cell_polygons()
 
-        error_flags = mesh_cells.loc[
-            (mesh_cells["max_ws_err"] > ERROR_FLAG)
-            ].copy()
+        error_flags = mesh_cells.loc[(mesh_cells["max_ws_err"] > ERROR_FLAG)].copy()
 
         flags_st = utils.df_datetimes_to_str(error_flags)
 
@@ -59,10 +58,10 @@ class WaterSurfaceError(RasqcChecker):
                 gdf=flags_st,
             )
         return RasqcResult(
-            name=self.name, 
-            result=ResultStatus.OK, 
+            name=self.name,
+            result=ResultStatus.OK,
             filename=plan_hdf_filename,
-            message=f"All cells have water surface errors within limits."
+            message=f"All cells have water surface errors within limits.",
         )
 
     def run(self, ras_model: RasModel) -> List[RasqcResult]:
